@@ -36,6 +36,9 @@
         .shake {
             animation: shake 0.5s ease-in-out;
         }
+        #feedback-message {
+            transition: opacity 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="text-white antialiased">
@@ -51,9 +54,12 @@
         <div id="solved-container" class="space-y-2 mb-4"></div>
 
         <!-- Game Grid -->
-        <div id="game-grid" class="grid grid-cols-4 gap-2 md:gap-3 mb-6">
+        <div id="game-grid" class="grid grid-cols-4 gap-2 md:gap-3 mb-4">
             <!-- Tiles will be generated here -->
         </div>
+        
+        <!-- Feedback Message Area -->
+        <div id="feedback-message" class="h-6 text-center font-semibold mb-2 opacity-0"></div>
 
         <!-- Mistakes and Buttons -->
         <div class="flex items-center justify-between">
@@ -73,7 +79,10 @@
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
             <div class="bg-gray-800 rounded-xl p-8 text-center max-w-md w-full shadow-lg transform transition-all scale-95 opacity-0" id="modal-content">
                 <h2 id="modal-title" class="text-3xl font-bold mb-4"></h2>
-                <div id="modal-results" class="space-y-2 mb-6"></div>
+                <div id="modal-results" class="space-y-2 mb-4"></div>
+                <p class="font-semibold mb-4">Your result:</p>
+                <div id="share-grid" class="font-mono text-2xl leading-tight mb-6"></div>
+                <button id="share-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300 mb-2">Share Your Results</button>
                 <button id="play-again-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Play Again</button>
             </div>
         </div>
@@ -81,7 +90,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 2.0.0</p>
+        <p class="mt-1">Version 2.1.0</p>
     </footer>
 
     <script>
@@ -202,6 +211,13 @@
             3: '#3b82f6', // Blue
             4: '#8b5cf6'  // Purple
         };
+        
+        const difficultyEmojis = {
+            1: '🟨',
+            2: '🟩',
+            3: '🟦',
+            4: '🟪'
+        };
 
         const grid = document.getElementById('game-grid');
         const solvedContainer = document.getElementById('solved-container');
@@ -213,8 +229,11 @@
         const modalTitle = document.getElementById('modal-title');
         const modalResults = document.getElementById('modal-results');
         const playAgainButton = document.getElementById('play-again-button');
+        const shareButton = document.getElementById('share-button');
+        const shareGrid = document.getElementById('share-grid');
+        const feedbackMessage = document.getElementById('feedback-message');
 
-        let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups;
+        let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups, guessHistory;
         const MAX_MISTAKES = 4;
 
         function initGame() {
@@ -225,6 +244,7 @@
             selectedTiles = [];
             mistakes = 0;
             solvedGroups = [];
+            guessHistory = [];
 
             grid.innerHTML = '';
             solvedContainer.innerHTML = '';
@@ -266,6 +286,8 @@
             if (selectedTiles.length !== 4) return;
             
             const selectedWords = selectedTiles.map(t => t.textContent);
+            
+            // Check for perfect match
             const correctGroup = currentPuzzle.groups.find(g => {
                 const groupWords = new Set(g.words);
                 return selectedWords.every(w => groupWords.has(w));
@@ -273,6 +295,7 @@
 
             if (correctGroup) {
                 solvedGroups.push(correctGroup);
+                guessHistory.push(correctGroup.difficulty);
                 renderSolvedGroups();
                 
                 selectedTiles.forEach(tile => {
@@ -285,8 +308,20 @@
                 if (solvedGroups.length === 4) {
                     endGame(true);
                 }
-
             } else {
+                // Incorrect guess, check for "One Away"
+                let isOneAway = false;
+                for (const group of currentPuzzle.groups) {
+                    const groupWords = new Set(group.words);
+                    const correctCount = selectedWords.filter(w => groupWords.has(w)).length;
+                    if (correctCount === 3) {
+                        isOneAway = true;
+                        break;
+                    }
+                }
+                
+                showFeedback(isOneAway ? "One away..." : "Incorrect");
+                
                 mistakes++;
                 updateMistakes();
                 selectedTiles.forEach(tile => tile.classList.add('shake'));
@@ -302,6 +337,14 @@
             }
         }
         
+        function showFeedback(message) {
+            feedbackMessage.textContent = message;
+            feedbackMessage.classList.remove('opacity-0');
+            setTimeout(() => {
+                feedbackMessage.classList.add('opacity-0');
+            }, 1500);
+        }
+
         function renderSolvedGroups() {
             solvedContainer.innerHTML = '';
             solvedGroups.sort((a, b) => a.difficulty - b.difficulty).forEach(group => {
@@ -336,6 +379,8 @@
         function endGame(isWin) {
             setTimeout(() => {
                 modalTitle.textContent = isWin ? "Congratulations!" : "Next Time!";
+                
+                // Show final sorted groups
                 modalResults.innerHTML = '';
                 currentPuzzle.groups.sort((a, b) => a.difficulty - b.difficulty).forEach(group => {
                     const resultRow = document.createElement('div');
@@ -347,8 +392,26 @@
                     `;
                     modalResults.appendChild(resultRow);
                 });
+                
+                // Create emoji grid
+                const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
+                shareGrid.textContent = emojiGridText;
+
                 showModal();
             }, 500);
+        }
+        
+        function copyResultsToClipboard() {
+            const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
+            const shareText = `MedConnections\n${emojiGridText}`;
+
+            navigator.clipboard.writeText(shareText).then(() => {
+                const originalText = shareButton.textContent;
+                shareButton.textContent = 'Copied!';
+                setTimeout(() => { shareButton.textContent = originalText; }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy results: ', err);
+            });
         }
 
         function showModal() {
@@ -364,6 +427,7 @@
         submitButton.addEventListener('click', handleSubmit);
         shuffleButton.addEventListener('click', handleShuffle);
         playAgainButton.addEventListener('click', initGame);
+        shareButton.addEventListener('click', copyResultsToClipboard);
 
         initGame();
     </script>
