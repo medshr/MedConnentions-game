@@ -111,7 +111,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 3.2.4</p>
+        <p class="mt-1">Version 3.2.5</p>
     </footer>
 
     <script>
@@ -514,11 +514,25 @@
             const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
             const shareText = `MedConnections #${getDailyPuzzleIndex() + 1}\n${emojiGridText}`;
 
-            navigator.clipboard.writeText(shareText).then(() => {
-                const originalText = shareButton.textContent;
-                shareButton.textContent = 'Copied!';
-                setTimeout(() => { shareButton.textContent = originalText; }, 2000);
-            }).catch(err => { console.error('Failed to copy results: ', err); });
+            const textArea = document.createElement("textarea");
+            textArea.value = shareText;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    const originalText = shareButton.textContent;
+                    shareButton.textContent = 'Copied!';
+                    setTimeout(() => { shareButton.textContent = originalText; }, 2000);
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy');
+            }
+            document.body.removeChild(textArea);
         }
 
         function showModal() {
