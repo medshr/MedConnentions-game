@@ -111,7 +111,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 3.2.5</p>
+        <p class="mt-1">Version 3.2.8</p>
     </footer>
 
     <script>
@@ -321,16 +321,47 @@
             
             if (isFreestyle) {
                 isDailyMode = false;
-                gameModeIndicator.textContent = "Freestyle Mode";
+                gameModeIndicator.textContent = "Challenge Mode";
                 
                 let availableGroups = allGroups.filter(g => !lastPlayedCategories.includes(g.category));
                 if (availableGroups.length < 4) {
                     availableGroups = allGroups; // Reset if not enough unique groups
                 }
+
+                const groupsByDifficulty = { 1: [], 2: [], 3: [], 4: [] };
+                availableGroups.forEach(g => {
+                    if(groupsByDifficulty[g.difficulty]) {
+                        groupsByDifficulty[g.difficulty].push(g);
+                    }
+                });
+
+                const newGroups = [];
+                for (let i = 1; i <= 4; i++) {
+                    let pool = groupsByDifficulty[i];
+                    if (pool.length === 0) {
+                        // If a difficulty level is exhausted, pull from the main pool for that difficulty
+                        pool = allGroups.filter(g => g.difficulty === i);
+                    }
+                    if (pool.length > 0) {
+                        const randomGroup = pool[Math.floor(Math.random() * pool.length)];
+                        newGroups.push(randomGroup);
+                    }
+                }
                 
-                // Shuffle and pick 4 unique groups
-                const newGroups = availableGroups.sort(() => 0.5 - Math.random()).slice(0, 4);
-                currentPuzzle = { groups: newGroups };
+                // Ensure 4 unique groups
+                let uniqueGroups = [...new Set(newGroups)];
+                
+                // If we don't have 4 unique groups (due to small pools), fill the remainder
+                if (uniqueGroups.length < 4) {
+                    const existingCategories = uniqueGroups.map(g => g.category);
+                    const remainingNeeded = 4 - uniqueGroups.length;
+                    const fillGroups = allGroups.filter(g => !existingCategories.includes(g.category))
+                                              .sort(() => 0.5 - Math.random())
+                                              .slice(0, remainingNeeded);
+                    uniqueGroups.push(...fillGroups);
+                }
+                currentPuzzle = { groups: uniqueGroups.slice(0, 4) };
+
 
             } else {
                 isDailyMode = true;
@@ -462,7 +493,7 @@
 
         function updateMistakes() {
             mistakesCounter.innerHTML = '';
-            for (let i = 0; i < MAX_MISTAKES; i++) {
+            for (let i = 0; i < MAX_MISTAKES - mistakes; i++) {
                 const dot = document.createElement('div');
                 dot.className = 'w-4 h-4 bg-blue-500 rounded-full';
                 mistakesCounter.appendChild(dot);
@@ -505,7 +536,7 @@
                 modalTitle.textContent = isWin ? "Congratulations!" : "Next Time!";
                 const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
                 shareGrid.textContent = emojiGridText;
-                playAgainButton.textContent = isDailyMode ? "Play Freestyle" : "Play Again";
+                playAgainButton.textContent = isDailyMode ? "Play Challenge" : "Play Again";
                 showModal(modal);
             }, 500);
         }
