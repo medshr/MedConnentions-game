@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnections - A Medical Grouping Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Tailwind gray-900 */
+        }
+        .grid-tile {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .grid-tile.selected {
+            background-color: #3B82F6; /* blue-500 */
+            transform: scale(0.95);
+            color: white;
+        }
+        .solved-row {
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .solved-row.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <div class="container mx-auto p-4 max-w-2xl text-center">
+        <!-- Header -->
+        <header class="my-6">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-blue-400">MedConnections</h1>
+            <p class="text-lg text-gray-400 mt-2">Find groups of four!</p>
+        </header>
+
+        <!-- Solved Groups Container -->
+        <div id="solved-container" class="space-y-2 mb-4"></div>
+
+        <!-- Game Grid -->
+        <div id="game-grid" class="grid grid-cols-4 gap-2 md:gap-3 mb-6">
+            <!-- Tiles will be generated here -->
+        </div>
+
+        <!-- Mistakes and Buttons -->
+        <div class="flex items-center justify-between">
+            <div class="text-left">
+                <p class="font-semibold">Mistakes remaining:</p>
+                <div id="mistakes-counter" class="flex space-x-2 mt-1">
+                    <!-- Dots will be generated here -->
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="shuffle-button" class="px-4 py-2 bg-gray-600 rounded-lg font-semibold hover:bg-gray-700 transition">Shuffle</button>
+                <button id="submit-button" class="px-4 py-2 bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Submit</button>
+            </div>
+        </div>
+        
+        <!-- Win/Loss Modal -->
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-gray-800 rounded-xl p-8 text-center max-w-md w-full shadow-lg transform transition-all scale-95 opacity-0" id="modal-content">
+                <h2 id="modal-title" class="text-3xl font-bold mb-4"></h2>
+                <div id="modal-results" class="space-y-2 mb-6"></div>
+                <button id="play-again-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const puzzles = [
+            {
+                groups: [
+                    { category: "HEART VALVES", words: ["AORTIC", "MITRAL", "TRICUSPID", "PULMONARY"], difficulty: 1 },
+                    { category: "BONES OF THE ARM", words: ["HUMERUS", "RADIUS", "ULNA", "SCAPULA"], difficulty: 2 },
+                    { category: "TYPES OF SHOCK", words: ["SEPTIC", "CARDIOGENIC", "HYPOVOLEMIC", "ANAPHYLACTIC"], difficulty: 3 },
+                    { category: "CRANIAL NERVES (BY NAME)", words: ["VAGUS", "OPTIC", "FACIAL", "OLFACTORY"], difficulty: 4 }
+                ]
+            },
+            {
+                groups: [
+                    { category: "BLOOD COMPONENTS", words: ["PLASMA", "PLATELETS", "ERYTHROCYTES", "LEUKOCYTES"], difficulty: 1 },
+                    { category: "ANTICOAGULANTS", words: ["HEPARIN", "WARFARIN", "APIXABAN", "RIVAROXABAN"], difficulty: 2 },
+                    { category: "LOBES OF THE BRAIN", words: ["FRONTAL", "PARIETAL", "TEMPORAL", "OCCIPITAL"], difficulty: 3 },
+                    { category: "CLASSIC SIGNS OF INFLAMMATION", words: ["RUBOR", "CALOR", "TUMOR", "DOLOR"], difficulty: 4 }
+                ]
+            },
+            {
+                 groups: [
+                    { category: "COMMON ELECTROLYTES", words: ["SODIUM", "POTASSIUM", "CHLORIDE", "CALCIUM"], difficulty: 1 },
+                    { category: "STATIN MEDICATIONS", words: ["ATORVASTATIN", "SIMVASTATIN", "ROSUVASTATIN", "PRAVASTATIN"], difficulty: 2 },
+                    { category: "PARTS OF THE SMALL INTESTINE", words: ["DUODENUM", "JEJUNUM", "ILEUM", "VILLI"], difficulty: 3 },
+                    { category: "TYPES OF BONE FRACTURES", words: ["COMMINUTED", "SPIRAL", "GREENSTICK", "TRANSVERSE"], difficulty: 4 }
+                ]
+            },
+            {
+                 groups: [
+                    { category: "IMAGING TECHNIQUES", words: ["ULTRASOUND", "CT SCAN", "MRI", "X-RAY"], difficulty: 1 },
+                    { category: "SURGICAL INCISIONS", words: ["KOCHER", "GRIDIRON", "PFANNENSTIEL", "MIDLINE"], difficulty: 2 },
+                    { category: "EPONYMOUS SIGNS IN MEDICINE", words: ["CHVOSTEK", "CULLEN", "HOMANS", "MURPHY"], difficulty: 3 },
+                    { category: "THINGS WITH A 'LUMEN'", words: ["ARTERY", "NEEDLE", "INTESTINE", "CATHETER"], difficulty: 4 }
+                ]
+            },
+            {
+                groups: [
+                    { category: "VACCINE-PREVENTABLE DISEASES", words: ["MEASLES", "MUMPS", "RUBELLA", "POLIO"], difficulty: 1 },
+                    { category: "BONES OF THE LEG", words: ["FEMUR", "TIBIA", "FIBULA", "PATELLA"], difficulty: 2 },
+                    { category: "MAJOR VEINS", words: ["JUGULAR", "VENA CAVA", "FEMORAL", "SAPHENOUS"], difficulty: 3 },
+                    { category: "WORDS ENDING IN '-ITIS'", words: ["ARTHRITIS", "BRONCHITIS", "COLITIS", "DERMATITIS"], difficulty: 4 }
+                ]
+            },
+            {
+                groups: [
+                    { category: "PARTS OF A NEURON", words: ["AXON", "DENDRITE", "SOMA", "MYELIN"], difficulty: 1 },
+                    { category: "BLOOD GAS VALUES", words: ["PH", "PCO2", "PO2", "HCO3"], difficulty: 2 },
+                    { category: "DRUGS FOR DIABETES", words: ["METFORMIN", "INSULIN", "LIRAGLUTIDE", "GLIPIZIDE"], difficulty: 3 },
+                    { category: "ITEMS IN A SUTURE KIT", words: ["NEEDLE", "FORCEPS", "SUTURE", "SCISSORS"], difficulty: 4 }
+                ]
+            },
+            {
+                groups: [
+                    { category: "ANTIBIOTIC CLASSES", words: ["PENICILLIN", "MACROLIDE", "CEPHALOSPORIN", "TETRACYCLINE"], difficulty: 1 },
+                    { category: "TYPES OF ANEMIA", words: ["APLASTIC", "PERNICIOUS", "SICKLE CELL", "IRON DEFICIENCY"], difficulty: 2 },
+                    { category: "GLASGOW COMA SCALE RESPONSES", words: ["EYE", "VERBAL", "MOTOR", "NONE"], difficulty: 3 },
+                    { category: "SOUND-ALIKE DRUG NAMES", words: ["CELEBREX", "CELEXA", "ZYRTEC", "ZANTAC"], difficulty: 4 }
+                ]
+            }
+        ];
+
+        const difficultyColors = {
+            1: '#f59e0b', // Yellow
+            2: '#10b981', // Green
+            3: '#3b82f6', // Blue
+            4: '#8b5cf6'  // Purple
+        };
+
+        const grid = document.getElementById('game-grid');
+        const solvedContainer = document.getElementById('solved-container');
+        const mistakesCounter = document.getElementById('mistakes-counter');
+        const submitButton = document.getElementById('submit-button');
+        const shuffleButton = document.getElementById('shuffle-button');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalResults = document.getElementById('modal-results');
+        const playAgainButton = document.getElementById('play-again-button');
+
+        let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups;
+        const MAX_MISTAKES = 4;
+
+        function initGame() {
+            currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+            allWords = currentPuzzle.groups.flatMap(g => g.words);
+            allWords.sort(() => Math.random() - 0.5);
+
+            selectedTiles = [];
+            mistakes = 0;
+            solvedGroups = [];
+
+            grid.innerHTML = '';
+            solvedContainer.innerHTML = '';
+            
+            allWords.forEach(word => {
+                const tile = document.createElement('div');
+                tile.textContent = word;
+                tile.className = 'grid-tile h-20 flex items-center justify-center bg-gray-700 rounded-lg cursor-pointer font-medium text-center p-1';
+                tile.addEventListener('click', () => handleTileClick(tile));
+                grid.appendChild(tile);
+            });
+
+            updateMistakes();
+            updateSubmitButton();
+            hideModal();
+        }
+
+        function handleTileClick(tile) {
+            if (tile.classList.contains('solved')) return;
+
+            const index = selectedTiles.indexOf(tile);
+            if (index > -1) {
+                selectedTiles.splice(index, 1);
+                tile.classList.remove('selected');
+            } else {
+                if (selectedTiles.length < 4) {
+                    selectedTiles.push(tile);
+                    tile.classList.add('selected');
+                }
+            }
+            updateSubmitButton();
+        }
+
+        function updateSubmitButton() {
+            submitButton.disabled = selectedTiles.length !== 4;
+        }
+
+        function handleSubmit() {
+            if (selectedTiles.length !== 4) return;
+            
+            const selectedWords = selectedTiles.map(t => t.textContent);
+            const correctGroup = currentPuzzle.groups.find(g => {
+                const groupWords = new Set(g.words);
+                return selectedWords.every(w => groupWords.has(w));
+            });
+
+            if (correctGroup) {
+                solvedGroups.push(correctGroup);
+                renderSolvedGroups();
+                
+                selectedTiles.forEach(tile => {
+                    tile.classList.add('solved', 'opacity-0', 'pointer-events-none');
+                });
+
+                selectedTiles = [];
+                updateSubmitButton();
+
+                if (solvedGroups.length === 4) {
+                    endGame(true);
+                }
+
+            } else {
+                mistakes++;
+                updateMistakes();
+                selectedTiles.forEach(tile => tile.classList.add('shake'));
+                setTimeout(() => {
+                    selectedTiles.forEach(tile => tile.classList.remove('shake', 'selected'));
+                    selectedTiles = [];
+                    updateSubmitButton();
+                }, 500);
+
+                if (mistakes >= MAX_MISTAKES) {
+                    endGame(false);
+                }
+            }
+        }
+        
+        function renderSolvedGroups() {
+            solvedContainer.innerHTML = '';
+            solvedGroups.sort((a, b) => a.difficulty - b.difficulty).forEach(group => {
+                const solvedRow = document.createElement('div');
+                solvedRow.className = 'solved-row p-4 rounded-lg text-left';
+                solvedRow.style.backgroundColor = difficultyColors[group.difficulty];
+                solvedRow.innerHTML = `
+                    <p class="font-bold text-lg">${group.category}</p>
+                    <p>${group.words.join(', ')}</p>
+                `;
+                solvedContainer.appendChild(solvedRow);
+                setTimeout(() => solvedRow.classList.add('visible'), 10);
+            });
+        }
+
+        function updateMistakes() {
+            mistakesCounter.innerHTML = '';
+            for (let i = 0; i < MAX_MISTAKES - mistakes; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'w-4 h-4 bg-blue-500 rounded-full';
+                mistakesCounter.appendChild(dot);
+            }
+        }
+        
+        function handleShuffle() {
+            const tiles = Array.from(grid.children).filter(t => !t.classList.contains('solved'));
+            const words = tiles.map(t => t.textContent);
+            words.sort(() => Math.random() - 0.5);
+            tiles.forEach((tile, i) => tile.textContent = words[i]);
+        }
+
+        function endGame(isWin) {
+            setTimeout(() => {
+                modalTitle.textContent = isWin ? "Congratulations!" : "Next Time!";
+                modalResults.innerHTML = '';
+                currentPuzzle.groups.sort((a, b) => a.difficulty - b.difficulty).forEach(group => {
+                    const resultRow = document.createElement('div');
+                    resultRow.className = 'p-3 rounded-lg text-left';
+                    resultRow.style.backgroundColor = difficultyColors[group.difficulty];
+                    resultRow.innerHTML = `
+                        <p class="font-bold">${group.category}</p>
+                        <p class="text-sm">${group.words.join(', ')}</p>
+                    `;
+                    modalResults.appendChild(resultRow);
+                });
+                showModal();
+            }, 500);
+        }
+
+        function showModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
+        }
+
+        function hideModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+        
+        submitButton.addEventListener('click', handleSubmit);
+        shuffleButton.addEventListener('click', handleShuffle);
+        playAgainButton.addEventListener('click', initGame);
+
+        initGame();
+    </script>
+</body>
+</html>
+
