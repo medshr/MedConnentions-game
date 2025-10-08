@@ -81,6 +81,7 @@
 
     <script>
         const puzzles = [
+            // Puzzle 1
             {
                 groups: [
                     { category: "HEART VALVES", words: ["AORTIC", "MITRAL", "TRICUSPID", "PULMONARY"], difficulty: 1 },
@@ -89,6 +90,7 @@
                     { category: "CRANIAL NERVES (BY NAME)", words: ["VAGUS", "OPTIC", "FACIAL", "OLFACTORY"], difficulty: 4 }
                 ]
             },
+            // Puzzle 2
             {
                 groups: [
                     { category: "BLOOD COMPONENTS", words: ["PLASMA", "PLATELETS", "ERYTHROCYTES", "LEUKOCYTES"], difficulty: 1 },
@@ -97,6 +99,7 @@
                     { category: "CLASSIC SIGNS OF INFLAMMATION", words: ["RUBOR", "CALOR", "TUMOR", "DOLOR"], difficulty: 4 }
                 ]
             },
+            // Puzzle 3
             {
                  groups: [
                     { category: "COMMON ELECTROLYTES", words: ["SODIUM", "POTASSIUM", "CHLORIDE", "CALCIUM"], difficulty: 1 },
@@ -105,6 +108,7 @@
                     { category: "TYPES OF BONE FRACTURES", words: ["COMMINUTED", "SPIRAL", "GREENSTICK", "TRANSVERSE"], difficulty: 4 }
                 ]
             },
+            // Puzzle 4
             {
                  groups: [
                     { category: "IMAGING TECHNIQUES", words: ["ULTRASOUND", "CT SCAN", "MRI", "X-RAY"], difficulty: 1 },
@@ -113,6 +117,7 @@
                     { category: "THINGS WITH A 'LUMEN'", words: ["ARTERY", "NEEDLE", "INTESTINE", "CATHETER"], difficulty: 4 }
                 ]
             },
+            // Puzzle 5
             {
                 groups: [
                     { category: "VACCINE-PREVENTABLE DISEASES", words: ["MEASLES", "MUMPS", "RUBELLA", "POLIO"], difficulty: 1 },
@@ -121,6 +126,7 @@
                     { category: "WORDS ENDING IN '-ITIS'", words: ["ARTHRITIS", "BRONCHITIS", "COLITIS", "DERMATITIS"], difficulty: 4 }
                 ]
             },
+            // Puzzle 6
             {
                 groups: [
                     { category: "PARTS OF A NEURON", words: ["AXON", "DENDRITE", "SOMA", "MYELIN"], difficulty: 1 },
@@ -129,12 +135,58 @@
                     { category: "ITEMS IN A SUTURE KIT", words: ["NEEDLE", "FORCEPS", "SUTURE", "SCISSORS"], difficulty: 4 }
                 ]
             },
+            // Puzzle 7
             {
                 groups: [
                     { category: "ANTIBIOTIC CLASSES", words: ["PENICILLIN", "MACROLIDE", "CEPHALOSPORIN", "TETRACYCLINE"], difficulty: 1 },
                     { category: "TYPES OF ANEMIA", words: ["APLASTIC", "PERNICIOUS", "SICKLE CELL", "IRON DEFICIENCY"], difficulty: 2 },
                     { category: "GLASGOW COMA SCALE RESPONSES", words: ["EYE", "VERBAL", "MOTOR", "NONE"], difficulty: 3 },
                     { category: "SOUND-ALIKE DRUG NAMES", words: ["CELEBREX", "CELEXA", "ZYRTEC", "ZANTAC"], difficulty: 4 }
+                ]
+            },
+            // Puzzle 8
+            {
+                groups: [
+                    { category: "PARTS OF THE EYE", words: ["RETINA", "CORNEA", "LENS", "IRIS"], difficulty: 1 },
+                    { category: "SSRI ANTIDEPRESSANTS", words: ["FLUOXETINE", "SERTRALINE", "CITALOPRAM", "ESCITALOPRAM"], difficulty: 2 },
+                    { category: "MEDICAL ABBREVIATIONS FOR TIME", words: ["STAT", "PRN", "NPO", "BID"], difficulty: 3 },
+                    { category: "THINGS IN A BLOOD COLLECTION TUBE", words: ["SERUM", "CLOT", "ANTICOAGULANT", "LABEL"], difficulty: 4 }
+                ]
+            },
+            // Puzzle 9
+            {
+                groups: [
+                    { category: "MAJOR ORGANS", words: ["HEART", "LUNG", "LIVER", "KIDNEY"], difficulty: 1 },
+                    { category: "TYPES OF IMAGING CONTRAST", words: ["IODINE", "GADOLINIUM", "BARIUM", "SALINE"], difficulty: 2 },
+                    { category: "SYMPTOMS OF HYPOGLYCEMIA", words: ["SWEATING", "TREMOR", "CONFUSION", "PALPITATIONS"], difficulty: 3 },
+                    { category: "MEDICAL 'SCOPES'", words: ["STETHOSCOPE", "OTOSCOPE", "OPHTHALMOSCOPE", "ENDOSCOPE"], difficulty: 4 }
+                ]
+            },
+            // Puzzle 10
+            {
+                groups: [
+                    { category: "COMMON PAINKILLERS (NSAIDS)", words: ["ASPIRIN", "IBUPROFEN", "ACETAMINOPHEN", "NAPROXEN"], difficulty: 1 },
+                    { category: "HEART RHYTHMS", words: ["SINUS", "FIBRILLATION", "TACHYCARDIA", "BRADYCARDIA"], difficulty: 2 },
+                    { category: "DIVISIONS OF THE SPINE", words: ["CERVICAL", "THORACIC", "LUMBAR", "SACRAL"], difficulty: 3 },
+                    { category: "WORDS CONTAINING 'CARDIO'", words: ["CARDIOLOGY", "CARDIOMYOPATHY", "ECG", "CARDIAC"], difficulty: 4 }
+                ]
+            },
+            // Puzzle 11
+            {
+                groups: [
+                    { category: "SKIN LAYERS", words: ["EPIDERMIS", "DERMIS", "HYPODERMIS", "STRATUM CORNEUM"], difficulty: 1 },
+                    { category: "TYPES OF IMMUNITY", words: ["INNATE", "ADAPTIVE", "PASSIVE", "ACTIVE"], difficulty: 2 },
+                    { category: "DRUGS ACTING ON RAAS", words: ["LISINOPRIL", "LOSARTAN", "SPIRONOLACTONE", "ALISKIREN"], difficulty: 3 },
+                    { category: "PREFIXES FOR 'SUGAR'", words: ["GLUCO-", "GLYCO-", "SACCHARO-", "FRUCTO-"], difficulty: 4 }
+                ]
+            },
+             // Puzzle 12
+            {
+                groups: [
+                    { category: "TYPES OF BLOOD VESSELS", words: ["ARTERY", "VEIN", "CAPILLARY", "ARTERIOLE"], difficulty: 1 },
+                    { category: "VITAMINS", words: ["NIACIN", "BIOTIN", "RIBOFLAVIN", "THIAMINE"], difficulty: 2 },
+                    { category: "STAGES OF WOUND HEALING", words: ["HEMOSTASIS", "INFLAMMATION", "PROLIFERATION", "REMODELING"], difficulty: 3 },
+                    { category: "THINGS MEASURED IN 'UNITS'", words: ["INSULIN", "BLOOD", "HEPARIN", "BOTULINUM TOXIN"], difficulty: 4 }
                 ]
             }
         ];
