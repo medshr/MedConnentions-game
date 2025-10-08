@@ -47,7 +47,7 @@
         <!-- Header -->
         <header class="my-6">
             <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-blue-400">MedConnections</h1>
-            <p class="text-lg text-gray-400 mt-2">Find groups of four!</p>
+            <p id="game-mode-indicator" class="text-lg text-gray-400 mt-2">Daily Puzzle</p>
         </header>
 
         <!-- Solved Groups Container -->
@@ -111,7 +111,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 3.0.1</p>
+        <p class="mt-1">Version 3.2.0</p>
     </footer>
 
     <script>
@@ -216,12 +216,48 @@
                 ]
             },
              // Puzzle 12
-           {
+            {
                 groups: [
                     { category: "TYPES OF BLOOD VESSELS", words: ["ARTERY", "VEIN", "CAPILLARY", "ARTERIOLE"], difficulty: 1 },
                     { category: "VITAMINS", words: ["NIACIN", "BIOTIN", "RIBOFLAVIN", "THIAMINE"], difficulty: 2 },
                     { category: "STAGES OF WOUND HEALING", words: ["HEMOSTASIS", "INFLAMMATION", "PROLIFERATION", "REMODELING"], difficulty: 3 },
                     { category: "THINGS MEASURED IN 'UNITS'", words: ["INSULIN", "BLOOD", "HEPARIN", "BOTULINUM TOXIN"], difficulty: 4 }
+                ]
+            },
+            // NEW Puzzle 13
+            {
+                groups: [
+                    { category: "COMMON LAB TESTS", words: ["CBC", "BMP", "LFT", "TSH"], difficulty: 1 },
+                    { category: "LAYERS OF THE HEART WALL", words: ["ENDOCARDIUM", "MYOCARDIUM", "EPICARDIUM", "PERICARDIUM"], difficulty: 2 },
+                    { category: "CLASSES OF ANTIHYPERTENSIVES", words: ["DIURETIC", "BETA-BLOCKER", "ACE INHIBITOR", "CALCIUM CHANNEL BLOCKER"], difficulty: 3 },
+                    { category: "EPONYMOUS MEDICAL TRIADS", words: ["BECK'S", "CHARCOT'S", "CUSHING'S", "VIRCHOW'S"], difficulty: 4 }
+                ]
+            },
+            // NEW Puzzle 14
+            {
+                groups: [
+                    { category: "TYPES OF JOINTS", words: ["BALL AND SOCKET", "HINGE", "SADDLE", "PIVOT"], difficulty: 1 },
+                    { category: "COMMON CHEMO SIDE EFFECTS", words: ["NAUSEA", "FATIGUE", "ALOPECIA", "NEUTROPENIA"], difficulty: 2 },
+                    { category: "PARTS OF A PRESCRIPTION", words: ["SIG", "DISP", "REFILLS", "DAW"], difficulty: 3 },
+                    { category: "MEDICAL PREFIXES FOR COLOR", words: ["CYANO-", "ERYTHRO-", "LEUKO-", "MELANO-"], difficulty: 4 }
+                ]
+            },
+            // NEW Puzzle 15
+            {
+                groups: [
+                    { category: "BASIC SURGICAL INSTRUMENTS", words: ["SCALPEL", "CLAMP", "RETRACTOR", "SUCTION"], difficulty: 1 },
+                    { category: "HORMONES FROM ANTERIOR PITUITARY", words: ["FSH", "LH", "ACTH", "GH"], difficulty: 2 },
+                    { category: "TYPES OF CELL DEATH", words: ["APOPTOSIS", "NECROSIS", "AUTOPHAGY", "PYROPTOSIS"], difficulty: 3 },
+                    { category: "THINGS FOUND IN A CRASH CART", words: ["DEFIBRILLATOR", "EPINEPHRINE", "LARYNGOSCOPE", "AMBU BAG"], difficulty: 4 }
+                ]
+            },
+            // NEW Puzzle 16
+            {
+                groups: [
+                    { category: "FIELDS OF MEDICINE", words: ["DERMATOLOGY", "CARDIOLOGY", "NEUROLOGY", "PEDIATRICS"], difficulty: 1 },
+                    { category: "TYPES OF SUTURES", words: ["SILK", "NYLON", "VICRYL", "CATGUT"], difficulty: 2 },
+                    { category: "COMPONENTS OF A COMPLETE BLOOD COUNT", words: ["HEMOGLOBIN", "HEMATOCRIT", "MCV", "RDW"], difficulty: 3 },
+                    { category: "WORDS CONTAINING 'PATH'", words: ["PATHOGEN", "PATHOLOGY", "SOCIOPATH", "SYMPATHY"], difficulty: 4 }
                 ]
             }
         ];
@@ -243,6 +279,7 @@
         const shareButton = document.getElementById('share-button');
         const playAgainButton = document.getElementById('play-again-button');
         const feedbackMessage = document.getElementById('feedback-message');
+        const gameModeIndicator = document.getElementById('game-mode-indicator');
 
         // Stats elements
         const statPlayed = document.getElementById('stat-played');
@@ -251,6 +288,7 @@
         const statMaxStreak = document.getElementById('stat-max-streak');
         
         let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups, guessHistory, stats;
+        let isDailyMode = true;
         const MAX_MISTAKES = 4;
         
         function getDailyPuzzleIndex() {
@@ -277,11 +315,26 @@
             localStorage.setItem('medConnectionsStats', JSON.stringify(stats));
         }
         
-        function initGame() {
+        function initGame(isFreestyle = false) {
             loadStats();
-            const puzzleIndex = getDailyPuzzleIndex();
-            currentPuzzle = puzzles[puzzleIndex];
+            let puzzleIndex;
+
+            if (isFreestyle) {
+                isDailyMode = false;
+                gameModeIndicator.textContent = "Freestyle Mode";
+                const dailyIndex = getDailyPuzzleIndex();
+                let availableIndices = puzzles.map((p, i) => i).filter(i => i !== dailyIndex);
+                if (availableIndices.length === 0) {
+                    availableIndices.push(dailyIndex); // Fallback if only one puzzle
+                }
+                puzzleIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+            } else {
+                isDailyMode = true;
+                gameModeIndicator.textContent = `Daily Puzzle #${getDailyPuzzleIndex() + 1}`;
+                puzzleIndex = getDailyPuzzleIndex();
+            }
             
+            currentPuzzle = puzzles[puzzleIndex];
             allWords = currentPuzzle.groups.flatMap(g => g.words);
             allWords.sort(() => Math.random() - 0.5);
 
@@ -419,7 +472,8 @@
 
         function updateStats(isWin) {
             const today = new Date().toISOString().slice(0, 10);
-            if (stats.lastPlayedDay === today) return; // Already played today
+            // Only update stats for the daily puzzle if it hasn't been played today
+            if (!isDailyMode || stats.lastPlayedDay === today) return; 
             
             stats.played++;
             if (isWin) {
@@ -443,13 +497,16 @@
         }
 
         function endGame(isWin) {
-            updateStats(isWin);
+            if (isDailyMode) {
+                updateStats(isWin);
+            }
             displayStats();
 
             setTimeout(() => {
                 modalTitle.textContent = isWin ? "Congratulations!" : "Next Time!";
                 const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
                 shareGrid.textContent = emojiGridText;
+                playAgainButton.textContent = isDailyMode ? "Play Freestyle" : "Play Again";
                 showModal();
             }, 500);
         }
@@ -480,10 +537,10 @@
         shuffleButton.addEventListener('click', handleShuffle);
         deselectButton.addEventListener('click', handleDeselectAll);
         shareButton.addEventListener('click', copyResultsToClipboard);
-        playAgainButton.addEventListener('click', initGame);
+        playAgainButton.addEventListener('click', () => initGame(true));
 
         // Initial game start
-        initGame();
+        initGame(false);
     </script>
 </body>
 </html>
