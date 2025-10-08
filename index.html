@@ -70,6 +70,7 @@
                 </div>
             </div>
             <div class="flex space-x-2">
+                 <button id="deselect-button" class="px-4 py-2 bg-gray-600 rounded-lg font-semibold hover:bg-gray-700 transition hidden">Deselect All</button>
                 <button id="shuffle-button" class="px-4 py-2 bg-gray-600 rounded-lg font-semibold hover:bg-gray-700 transition">Shuffle</button>
                 <button id="submit-button" class="px-4 py-2 bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Submit</button>
             </div>
@@ -79,8 +80,28 @@
         <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
             <div class="bg-gray-800 rounded-xl p-8 text-center max-w-md w-full shadow-lg transform transition-all scale-95 opacity-0" id="modal-content">
                 <h2 id="modal-title" class="text-3xl font-bold mb-4"></h2>
-                <div id="modal-results" class="space-y-2 mb-4"></div>
-                <p class="font-semibold mb-4">Your result:</p>
+                
+                <!-- Stats Display -->
+                <div id="stats-display" class="grid grid-cols-4 gap-4 text-center mb-6">
+                    <div>
+                        <p id="stat-played" class="text-3xl font-bold">0</p>
+                        <p class="text-xs text-gray-400">Played</p>
+                    </div>
+                     <div>
+                        <p id="stat-win-percent" class="text-3xl font-bold">0</p>
+                        <p class="text-xs text-gray-400">Win %</p>
+                    </div>
+                     <div>
+                        <p id="stat-current-streak" class="text-3xl font-bold">0</p>
+                        <p class="text-xs text-gray-400">Current Streak</p>
+                    </div>
+                     <div>
+                        <p id="stat-max-streak" class="text-3xl font-bold">0</p>
+                        <p class="text-xs text-gray-400">Max Streak</p>
+                    </div>
+                </div>
+
+                <p class="font-semibold mb-4">Today's Result:</p>
                 <div id="share-grid" class="font-mono text-2xl leading-tight mb-6"></div>
                 <button id="share-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300 mb-2">Share Your Results</button>
                 <button id="play-again-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Play Again</button>
@@ -90,7 +111,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 2.1.0</p>
+        <p class="mt-1">Version 3.0.1</p>
     </footer>
 
     <script>
@@ -195,7 +216,7 @@
                 ]
             },
              // Puzzle 12
-            {
+           {
                 groups: [
                     { category: "TYPES OF BLOOD VESSELS", words: ["ARTERY", "VEIN", "CAPILLARY", "ARTERIOLE"], difficulty: 1 },
                     { category: "VITAMINS", words: ["NIACIN", "BIOTIN", "RIBOFLAVIN", "THIAMINE"], difficulty: 2 },
@@ -205,39 +226,62 @@
             }
         ];
 
-        const difficultyColors = {
-            1: '#f59e0b', // Yellow
-            2: '#10b981', // Green
-            3: '#3b82f6', // Blue
-            4: '#8b5cf6'  // Purple
-        };
-        
-        const difficultyEmojis = {
-            1: '🟨',
-            2: '🟩',
-            3: '🟦',
-            4: '🟪'
-        };
+        const difficultyColors = { 1: '#f59e0b', 2: '#10b981', 3: '#3b82f6', 4: '#8b5cf6' };
+        const difficultyEmojis = { 1: '🟨', 2: '🟩', 3: '🟦', 4: '🟪' };
 
+        // DOM Elements
         const grid = document.getElementById('game-grid');
         const solvedContainer = document.getElementById('solved-container');
         const mistakesCounter = document.getElementById('mistakes-counter');
         const submitButton = document.getElementById('submit-button');
         const shuffleButton = document.getElementById('shuffle-button');
+        const deselectButton = document.getElementById('deselect-button');
         const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modal-content');
         const modalTitle = document.getElementById('modal-title');
-        const modalResults = document.getElementById('modal-results');
-        const playAgainButton = document.getElementById('play-again-button');
-        const shareButton = document.getElementById('share-button');
         const shareGrid = document.getElementById('share-grid');
+        const shareButton = document.getElementById('share-button');
+        const playAgainButton = document.getElementById('play-again-button');
         const feedbackMessage = document.getElementById('feedback-message');
 
-        let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups, guessHistory;
+        // Stats elements
+        const statPlayed = document.getElementById('stat-played');
+        const statWinPercent = document.getElementById('stat-win-percent');
+        const statCurrentStreak = document.getElementById('stat-current-streak');
+        const statMaxStreak = document.getElementById('stat-max-streak');
+        
+        let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups, guessHistory, stats;
         const MAX_MISTAKES = 4;
+        
+        function getDailyPuzzleIndex() {
+            const epoch = new Date('2025-10-01');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalize to start of day
+            const diffTime = today - epoch;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays % puzzles.length;
+        }
 
+        function loadStats() {
+            const statsJson = localStorage.getItem('medConnectionsStats');
+            stats = statsJson ? JSON.parse(statsJson) : {
+                played: 0,
+                wins: 0,
+                currentStreak: 0,
+                maxStreak: 0,
+                lastPlayedDay: null
+            };
+        }
+
+        function saveStats() {
+            localStorage.setItem('medConnectionsStats', JSON.stringify(stats));
+        }
+        
         function initGame() {
-            currentPuzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+            loadStats();
+            const puzzleIndex = getDailyPuzzleIndex();
+            currentPuzzle = puzzles[puzzleIndex];
+            
             allWords = currentPuzzle.groups.flatMap(g => g.words);
             allWords.sort(() => Math.random() - 0.5);
 
@@ -276,6 +320,14 @@
                 }
             }
             updateSubmitButton();
+            deselectButton.classList.toggle('hidden', selectedTiles.length === 0);
+        }
+        
+        function handleDeselectAll() {
+            selectedTiles.forEach(t => t.classList.remove('selected'));
+            selectedTiles = [];
+            updateSubmitButton();
+            deselectButton.classList.add('hidden');
         }
 
         function updateSubmitButton() {
@@ -287,7 +339,6 @@
             
             const selectedWords = selectedTiles.map(t => t.textContent);
             
-            // Check for perfect match
             const correctGroup = currentPuzzle.groups.find(g => {
                 const groupWords = new Set(g.words);
                 return selectedWords.every(w => groupWords.has(w));
@@ -301,25 +352,20 @@
                 selectedTiles.forEach(tile => {
                     tile.classList.add('solved', 'opacity-0', 'pointer-events-none');
                 });
-
                 selectedTiles = [];
                 updateSubmitButton();
+                deselectButton.classList.add('hidden');
 
                 if (solvedGroups.length === 4) {
                     endGame(true);
                 }
             } else {
-                // Incorrect guess, check for "One Away"
                 let isOneAway = false;
                 for (const group of currentPuzzle.groups) {
                     const groupWords = new Set(group.words);
                     const correctCount = selectedWords.filter(w => groupWords.has(w)).length;
-                    if (correctCount === 3) {
-                        isOneAway = true;
-                        break;
-                    }
+                    if (correctCount === 3) { isOneAway = true; break; }
                 }
-                
                 showFeedback(isOneAway ? "One away..." : "Incorrect");
                 
                 mistakes++;
@@ -340,9 +386,7 @@
         function showFeedback(message) {
             feedbackMessage.textContent = message;
             feedbackMessage.classList.remove('opacity-0');
-            setTimeout(() => {
-                feedbackMessage.classList.add('opacity-0');
-            }, 1500);
+            setTimeout(() => { feedbackMessage.classList.add('opacity-0'); }, 1500);
         }
 
         function renderSolvedGroups() {
@@ -351,10 +395,7 @@
                 const solvedRow = document.createElement('div');
                 solvedRow.className = 'solved-row p-4 rounded-lg text-left';
                 solvedRow.style.backgroundColor = difficultyColors[group.difficulty];
-                solvedRow.innerHTML = `
-                    <p class="font-bold text-lg">${group.category}</p>
-                    <p>${group.words.join(', ')}</p>
-                `;
+                solvedRow.innerHTML = `<p class="font-bold text-lg">${group.category}</p><p>${group.words.join(', ')}</p>`;
                 solvedContainer.appendChild(solvedRow);
                 setTimeout(() => solvedRow.classList.add('visible'), 10);
             });
@@ -376,42 +417,52 @@
             tiles.forEach((tile, i) => tile.textContent = words[i]);
         }
 
+        function updateStats(isWin) {
+            const today = new Date().toISOString().slice(0, 10);
+            if (stats.lastPlayedDay === today) return; // Already played today
+            
+            stats.played++;
+            if (isWin) {
+                stats.wins++;
+                stats.currentStreak++;
+                if (stats.currentStreak > stats.maxStreak) {
+                    stats.maxStreak = stats.currentStreak;
+                }
+            } else {
+                stats.currentStreak = 0;
+            }
+            stats.lastPlayedDay = today;
+            saveStats();
+        }
+        
+        function displayStats() {
+            statPlayed.textContent = stats.played;
+            statWinPercent.textContent = stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) : 0;
+            statCurrentStreak.textContent = stats.currentStreak;
+            statMaxStreak.textContent = stats.maxStreak;
+        }
+
         function endGame(isWin) {
+            updateStats(isWin);
+            displayStats();
+
             setTimeout(() => {
                 modalTitle.textContent = isWin ? "Congratulations!" : "Next Time!";
-                
-                // Show final sorted groups
-                modalResults.innerHTML = '';
-                currentPuzzle.groups.sort((a, b) => a.difficulty - b.difficulty).forEach(group => {
-                    const resultRow = document.createElement('div');
-                    resultRow.className = 'p-3 rounded-lg text-left';
-                    resultRow.style.backgroundColor = difficultyColors[group.difficulty];
-                    resultRow.innerHTML = `
-                        <p class="font-bold">${group.category}</p>
-                        <p class="text-sm">${group.words.join(', ')}</p>
-                    `;
-                    modalResults.appendChild(resultRow);
-                });
-                
-                // Create emoji grid
                 const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
                 shareGrid.textContent = emojiGridText;
-
                 showModal();
             }, 500);
         }
         
         function copyResultsToClipboard() {
             const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
-            const shareText = `MedConnections\n${emojiGridText}`;
+            const shareText = `MedConnections #${getDailyPuzzleIndex() + 1}\n${emojiGridText}`;
 
             navigator.clipboard.writeText(shareText).then(() => {
                 const originalText = shareButton.textContent;
                 shareButton.textContent = 'Copied!';
                 setTimeout(() => { shareButton.textContent = originalText; }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy results: ', err);
-            });
+            }).catch(err => { console.error('Failed to copy results: ', err); });
         }
 
         function showModal() {
@@ -424,11 +475,14 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
         
+        // Event Listeners
         submitButton.addEventListener('click', handleSubmit);
         shuffleButton.addEventListener('click', handleShuffle);
-        playAgainButton.addEventListener('click', initGame);
+        deselectButton.addEventListener('click', handleDeselectAll);
         shareButton.addEventListener('click', copyResultsToClipboard);
+        playAgainButton.addEventListener('click', initGame);
 
+        // Initial game start
         initGame();
     </script>
 </body>
