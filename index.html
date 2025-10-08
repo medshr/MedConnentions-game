@@ -111,7 +111,7 @@
     
     <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
         <p>A MedShr Production</p>
-        <p class="mt-1">Version 3.2.0</p>
+        <p class="mt-1">Version 3.2.4</p>
     </footer>
 
     <script>
@@ -262,6 +262,7 @@
             }
         ];
 
+        const allGroups = puzzles.flatMap(p => p.groups);
         const difficultyColors = { 1: '#f59e0b', 2: '#10b981', 3: '#3b82f6', 4: '#8b5cf6' };
         const difficultyEmojis = { 1: '🟨', 2: '🟩', 3: '🟦', 4: '🟪' };
 
@@ -289,6 +290,7 @@
         
         let currentPuzzle, allWords, selectedTiles, mistakes, solvedGroups, guessHistory, stats;
         let isDailyMode = true;
+        let lastPlayedCategories = [];
         const MAX_MISTAKES = 4;
         
         function getDailyPuzzleIndex() {
@@ -306,8 +308,7 @@
                 played: 0,
                 wins: 0,
                 currentStreak: 0,
-                maxStreak: 0,
-                lastPlayedDay: null
+                maxStreak: 0
             };
         }
 
@@ -317,24 +318,28 @@
         
         function initGame(isFreestyle = false) {
             loadStats();
-            let puzzleIndex;
-
+            
             if (isFreestyle) {
                 isDailyMode = false;
                 gameModeIndicator.textContent = "Freestyle Mode";
-                const dailyIndex = getDailyPuzzleIndex();
-                let availableIndices = puzzles.map((p, i) => i).filter(i => i !== dailyIndex);
-                if (availableIndices.length === 0) {
-                    availableIndices.push(dailyIndex); // Fallback if only one puzzle
+                
+                let availableGroups = allGroups.filter(g => !lastPlayedCategories.includes(g.category));
+                if (availableGroups.length < 4) {
+                    availableGroups = allGroups; // Reset if not enough unique groups
                 }
-                puzzleIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                
+                // Shuffle and pick 4 unique groups
+                const newGroups = availableGroups.sort(() => 0.5 - Math.random()).slice(0, 4);
+                currentPuzzle = { groups: newGroups };
+
             } else {
                 isDailyMode = true;
-                gameModeIndicator.textContent = `Daily Puzzle #${getDailyPuzzleIndex() + 1}`;
-                puzzleIndex = getDailyPuzzleIndex();
+                const puzzleIndex = getDailyPuzzleIndex();
+                gameModeIndicator.textContent = `Daily Puzzle #${puzzleIndex + 1}`;
+                currentPuzzle = puzzles[puzzleIndex];
             }
             
-            currentPuzzle = puzzles[puzzleIndex];
+            lastPlayedCategories = currentPuzzle.groups.map(g => g.category);
             allWords = currentPuzzle.groups.flatMap(g => g.words);
             allWords.sort(() => Math.random() - 0.5);
 
@@ -412,6 +417,7 @@
                 if (solvedGroups.length === 4) {
                     endGame(true);
                 }
+
             } else {
                 let isOneAway = false;
                 for (const group of currentPuzzle.groups) {
@@ -456,7 +462,7 @@
 
         function updateMistakes() {
             mistakesCounter.innerHTML = '';
-            for (let i = 0; i < MAX_MISTAKES - mistakes; i++) {
+            for (let i = 0; i < MAX_MISTAKES; i++) {
                 const dot = document.createElement('div');
                 dot.className = 'w-4 h-4 bg-blue-500 rounded-full';
                 mistakesCounter.appendChild(dot);
@@ -471,10 +477,6 @@
         }
 
         function updateStats(isWin) {
-            const today = new Date().toISOString().slice(0, 10);
-            // Only update stats for the daily puzzle if it hasn't been played today
-            if (!isDailyMode || stats.lastPlayedDay === today) return; 
-            
             stats.played++;
             if (isWin) {
                 stats.wins++;
@@ -485,7 +487,6 @@
             } else {
                 stats.currentStreak = 0;
             }
-            stats.lastPlayedDay = today;
             saveStats();
         }
         
@@ -497,9 +498,7 @@
         }
 
         function endGame(isWin) {
-            if (isDailyMode) {
-                updateStats(isWin);
-            }
+            updateStats(isWin);
             displayStats();
 
             setTimeout(() => {
@@ -507,7 +506,7 @@
                 const emojiGridText = guessHistory.map(diff => difficultyEmojis[diff]).join('');
                 shareGrid.textContent = emojiGridText;
                 playAgainButton.textContent = isDailyMode ? "Play Freestyle" : "Play Again";
-                showModal();
+                showModal(modal);
             }, 500);
         }
         
